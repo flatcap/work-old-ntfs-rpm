@@ -1,0 +1,33 @@
+#!/bin/bash
+
+clear
+
+HEADER=kernel-module-ntfs
+RPM=$1
+
+# Parse the rpm name: kernel-module-ntfs-2.6.11-1.1275_FC4smp-2.1.22-0.rr.6.0.x86_64.rpm
+#   VERSION  2.6.8
+#   RELEASE  1.521
+TMP=`echo $RPM | sed 's/'$HEADER'-\(.*\)\.rpm/\1/'`
+A=`echo $TMP | sed 's/\(.*-.*\)-\(.*\)-\(.*\)\.\(.*\)/\1/'`
+B=`echo $TMP | sed 's/\(.*-.*\)-\(.*\)-\(.*\)\.\(.*\)/\2/'`
+C=`echo $TMP | sed 's/\(.*-.*\)-\(.*\)-\(.*\)\.\(.*\)/\3/'`
+D=`echo $TMP | sed 's/\(.*-.*\)-\(.*\)-\(.*\)\.\(.*\)/\4/'`
+
+echo RPM=$RPM
+echo TMP=$TMP
+echo XXX=$A-$B-$C.$D
+echo A=$A
+echo B=$B
+echo C=$C
+echo D=$D
+echo
+
+echo lib/modules/$A/kernel/fs/ntfs/ntfs.ko
+echo
+
+rpm2cpio $HEADER-$A-$B-$C.$D.rpm | cpio -id --quiet
+
+mv lib/modules/$A/kernel/fs/ntfs/ntfs.ko $HEADER-$A-$B-$C.$D.ko
+
+rmdir -p lib/modules/$A/kernel/fs/ntfs

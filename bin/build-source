@@ -1,0 +1,37 @@
+#!/bin/bash
+
+RPMTMP=`pwd`/tmp
+OUTDIR="done"
+ARG=$1
+
+rm -fr $RPMTMP
+mkdir -p $RPMTMP/BUILD
+mkdir -p $RPMTMP/RPMS/athlon
+mkdir -p $RPMTMP/RPMS/i386
+mkdir -p $RPMTMP/RPMS/i586
+mkdir -p $RPMTMP/RPMS/i686
+mkdir -p $RPMTMP/RPMS/noarch
+mkdir -p $RPMTMP/RPMS/x86_64
+mkdir -p $RPMTMP/SOURCES
+mkdir -p $RPMTMP/SPECS
+mkdir -p $RPMTMP/SRPMS
+
+mkdir -p $OUTDIR
+
+# rhel3
+#rpmbuild --target=i386-redhat-linux --rebuild --define=_topdir\ $RPMTMP --define=_tmppath\ $RPMTMP $ARG
+#rpmbuild --target=i686-redhat-linux --rebuild --define=_topdir\ $RPMTMP --define=_tmppath\ $RPMTMP $ARG
+
+# used for rhel4
+rpmbuild 								\
+	--target=i686-redhat-linux 					\
+	--rebuild							\
+	--define=_topdir\ $RPMTMP					\
+	--define=_tmppath\ $RPMTMP					\
+	--define=PACKAGE_VERSION\ 2.6.18				\
+	--define=PACKAGE_RELEASE\ 8.1.15.el5				\
+	--define=__beehive_build\ 1					\
+	$ARG
+
+find tmp/RPMS -type f -exec mv {} $OUTDIR \;
+

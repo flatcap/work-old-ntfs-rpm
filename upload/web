@@ -1,0 +1,110 @@
+#!/bin/bash
+
+BASE="http://prdownloads.sourceforge.net/linux-ntfs"
+ALL_DISTROS="rhel3 rhel4 rhel5"
+
+dividers()
+{
+	[ $1 -gt 9 ] && echo -n "^"
+	[ $1 -gt 8 ] && echo -n "^"
+	[ $1 -gt 7 ] && echo -n "^"
+	[ $1 -gt 6 ] && echo -n "^"
+	[ $1 -gt 5 ] && echo -n "^"
+	[ $1 -gt 4 ] && echo -n "^"
+	[ $1 -gt 3 ] && echo -n "^"
+	[ $1 -gt 2 ] && echo -n "^"
+	[ $1 -gt 1 ] && echo -n "^"
+}
+
+get_vers()
+{
+	local DIR=$1
+	local NAME=$2
+
+	VERS=`find $DIR/ -type d -name $NAME\* | sed 's/'$DIR'\/'$NAME'-//g' | sort -t. -k5nr | sort -t. -k4nr | sort -t- -k2nr`
+}
+
+table()
+{
+	local DIR=$1
+	local NAME=$2
+	local SUFFIX=$3
+	shift 3
+	local ARCH=$*
+	local i
+	local j
+
+	echo "====== NTFS RPMs (*.rpm) ======"
+	echo
+	echo -n '^ Version ^ Processor '
+	dividers $#
+	echo ' Thanks |'
+
+	get_vers $DIR $NAME
+
+	for i in $VERS; do
+		echo "    $i" > /dev/tty
+		echo -n '^ '$i'  |'
+
+		for j in $ARCH; do
+			CPU=`echo $j | cut -d- -f1`
+			MOD1=`echo $j | sed 's/[^-]*\(-.*\)*/\1/'`
+			MOD2=`echo $j | sed 's/[^-]*-*\(.*\)*/\1/'`
+
+			if [ $NAME = "kernel-ntfs" ]; then
+				FILE=`find $DIR/$NAME-$i -name $NAME$MOD1-$i\*.$CPU.$SUFFIX -exec basename {} \;`
+			else
+				FILE=`find $DIR/$NAME-$i -name $NAME-$i$MOD2-\*.$CPU.$SUFFIX -exec basename {} \;`
+			fi
+
+			if [ -n "$FILE" ]; then
+				echo -n '[['$BASE/$FILE'|'$CPU$MOD1']] |'
+			else
+				if [ "$j" = "thanks" ]; then
+					if [ -f $DIR/$NAME-$i/$j ]; then
+						echo -n `head -1 $DIR/$NAME-$i/$j`' |'
+					else
+						echo -n ' FlatCap |'
+					fi
+				else
+					echo -n ' |'
+				fi
+			fi
+		done
+		echo
+	done
+	echo
+}
+
+
+if [ -n "$*" ]; then
+	DISTROS="$*"
+else
+	DISTROS="$ALL_DISTROS"
+fi
+
+for i in $DISTROS; do
+	D=`echo $i | sed 's,/$,,'`
+	case $D in
+		rhel3)
+			ARCH="i386 i586 i686 athlon i586-smp i686-smp athlon-smp i386-BOOT i686-hugemem thanks"
+			NAME="kernel-ntfs"
+			;;
+		rhel4)
+			ARCH="i686 i686-smp i686-hugemem x86_64 x86_64-smp thanks"
+			NAME="kernel-module-ntfs"
+			;;
+		rhel5)
+			ARCH="i686 i686-xen x86_64 x86_64-xen thanks"
+			NAME="kernel-module-ntfs"
+			;;
+		*)
+			echo "Unknown distro $D"
+			continue
+			;;
+	esac
+
+	echo "$D (.rpm)"
+	table $D $NAME rpm $ARCH > "$D.html"
+done
+

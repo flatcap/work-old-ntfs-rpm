@@ -1,0 +1,74 @@
+#!/bin/bash
+
+NOTIFY="flatcap"
+BASEDIR="/home/flatcap/work/rpm"
+LOG="$BASEDIR/bin/run_log"
+LASTDIR="$BASEDIR/versions"
+NEWDIR="$LASTDIR/new"
+DATE=`/bin/date "+%Y-%m-%d_%H:%M"`
+FAILED=""
+
+PATH=/bin:/usr/bin
+
+klookup()
+{
+	local OUT=$1
+	local SITE=$2
+
+	echo Searching $SITE
+	for ((i=0;i<5;i++)) do
+		wget $SITE -O $NEWDIR/$OUT-tmp
+		if [ $? = 0 ]; then
+			cat $NEWDIR/$OUT-tmp | grep "href=" | sed 's/<\/a>.*//' | sed 's/.*>//' | grep "^kernel-2" | sed 's/\.[0-9a-z]\+\.rpm//' | LANG=C sort | uniq > $NEWDIR/$OUT
+			cat $LASTDIR/$OUT $NEWDIR/$OUT | LANG=C sort | uniq > $NEWDIR/$OUT-
+			mv $NEWDIR/$OUT- $NEWDIR/$OUT
+			rm -f $NEWDIR/$OUT-tmp
+			sleep 5
+			return 0
+		fi
+		rm -f $NEWDIR/$OUT-tmp
+		sleep 10
+		echo Trying again
+	done
+	echo failed
+	FAILED="$FAILED $OUT"
+	return 1
+}
+
+
+cd $BASEDIR
+mkdir -p $NEWDIR
+
+echo $DATE >> $LOG
+
+# RHEL
+klookup rhel3 ftp://ftp.redhat.com/pub/redhat/linux/updates/enterprise/3WS/en/os/SRPMS/
+klookup rhel4 ftp://ftp.redhat.com/pub/redhat/linux/updates/enterprise/4WS/en/os/SRPMS/
+klookup rhel5 ftp://ftp.redhat.com/pub/redhat/linux/enterprise/5Client/en/os/SRPMS/
+
+if [ -n "$FAILED" ]; then
+	rm -f $NEWDIR/*
+	echo Lookup failed $FAILED | tee -a $LOG
+	echo Lookup failed $FAILED | mail -s "RPM Updates - Failed ($FAILED)" $NOTIFY
+	exit 1
+fi
+
+DIFF="$BASEDIR/diff-$DATE"
+
+diff $LASTDIR $NEWDIR | grep "^[<>]" | LANG=C sort > $DIFF
+
+if [ `wc -l $DIFF | sed 's/ .*//'` = "0" ]; then
+	echo No differences | tee -a $LOG
+	#echo No differences | mail -s "RPM Updates - No differences" $NOTIFY
+	rm $NEWDIR/*
+else
+	cat $DIFF | tee -a $LOG
+	mv $NEWDIR/* $LASTDIR
+	mail -s "RPM Updates - Updates" $NOTIFY < $DIFF
+fi
+
+rm $DIFF
+rmdir --ignore-fail-on-non-empty $NEWDIR
+
+exit 0
+

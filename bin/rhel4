@@ -1,0 +1,20 @@
+#!/bin/bash
+
+BASEURL="ftp://ftp.redhat.com/pub/redhat/linux/updates/enterprise/4WS/en/os"
+VERSION=`echo $1 | sed 's/^kernel-//'`
+WGETOPTS="-c -nv"
+PROGRAM="`basename $0`"
+
+if [ -z "$VERSION" ]; then
+	echo "Usage: $PROGRAM <version>"
+	exit 1
+fi
+
+echo
+echo $PROGRAM
+for i in SRPMS/kernel-$VERSION.src.rpm; do
+	echo "	"`basename $i`
+	wget -c $WGETOPTS $BASEURL/$i
+done
+echo
+

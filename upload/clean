@@ -1,0 +1,25 @@
+#!/bin/bash
+
+DIRS="rhel3 rhel4 rhel5"
+
+for i in $DIRS; do
+	if [ ! -d $i ]; then
+		exit 1
+	fi
+done
+
+TRUNCATE=`find $DIRS -mindepth 2 -type f ! -name thanks ! -size 0`
+
+if [ -n "$TRUNCATE" ]; then
+	for i in $TRUNCATE; do
+		> $i
+	done
+fi
+
+rm -f *.html
+rm -f rpm.tar.bz2
+
+tar cfj rpm.tar.bz2 $DIRS
+
+rm -fr $DIRS
+

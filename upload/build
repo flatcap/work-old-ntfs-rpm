@@ -1,0 +1,12 @@
+#!/bin/bash
+
+DIRS="rhel3 rhel4 rhel5"
+
+for i in $DIRS; do
+	if [ -d $i ]; then
+		exit 1
+	fi
+done
+
+tar xfj rpm.tar.bz2
+

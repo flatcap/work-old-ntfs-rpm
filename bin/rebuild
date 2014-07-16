@@ -1,0 +1,81 @@
+#!/bin/bash
+
+NAME=kernel-ntfs
+LOG=/dev/tty
+RPMTMP=`pwd`/tmp
+SPEC=kernel-ntfs.spec
+#SUFFIX=ko
+#SUFFIX=o
+MODULE=ntfs.$SUFFIX
+
+if [ ! -f "$1" ]; then
+	exit 1
+fi
+
+mkdir -p $RPMTMP/BUILD
+mkdir -p $RPMTMP/RPMS/athlon
+mkdir -p $RPMTMP/RPMS/i386
+mkdir -p $RPMTMP/RPMS/i586
+mkdir -p $RPMTMP/RPMS/i686
+mkdir -p $RPMTMP/RPMS/noarch
+mkdir -p $RPMTMP/SOURCES
+mkdir -p $RPMTMP/SPECS
+mkdir -p $RPMTMP/SRPMS
+
+rm -f $RPMTMP/BUILD/$MODULE
+cp $1 $RPMTMP/BUILD/$MODULE
+
+TMP=`echo $1 | sed "s/$NAME-//" | sed "s/\.$SUFFIX$//"`
+
+if [ -z "$SUFF2" ]; then
+	SUFF2=`echo $TMP | sed "s/\(smp\)*\(-\)*.*/\2\1/"`
+	SUFF1=`echo $SUFF2 | sed "s/-//"`
+fi
+
+if [ -z "$SUFF2" ]; then
+	SUFF2=`echo $TMP | sed "s/\(bigmem\)*\(-\)*.*/\2\1/"`
+	SUFF1=`echo $SUFF2 | sed "s/-//"`
+fi
+
+if [ -z "$SUFF2" ]; then
+	SUFF2=`echo $TMP | sed "s/\(debug\)*\(-\)*.*/\2\1/"`
+	SUFF1=`echo $SUFF2 | sed "s/-//"`
+fi
+
+if [ -z "$SUFF2" ]; then
+	SUFF2=`echo $TMP | sed "s/\(BOOT\)*\(-\)*.*/\2\1/"`
+	SUFF1=`echo $SUFF2 | sed "s/-//"`
+fi
+
+if [ ! -z "$SUFF2" ]; then
+	TMP=`echo $TMP | sed "s/$SUFF1-//"`
+fi
+
+CPU=`echo $TMP | sed "s/.*\.//"`
+
+TMP=`echo $TMP | sed "s/\.$CPU//"`
+
+VERSION=`echo $TMP | sed "s/-.*//"`
+RELEASE=`echo $TMP | sed "s/.*-//"`
+
+echo SUFF1   $SUFF1
+echo SUFF2   $SUFF2
+echo CPU     $CPU
+echo VERSION $VERSION
+echo RELEASE $RELEASE
+
+rpmbuild -bb --target=$CPU 				\
+	--define=module\ $MODULE			\
+	--define=name_bare\ $NAME			\
+	--define=name_suff\ $NAME$SUFF2			\
+	--define=version\ $VERSION			\
+	--define=release\ $RELEASE			\
+	--define=release_suff\ $RELEASE$SUFF1		\
+	--define=requires\ kernel			\
+	--define=requires_suff\ kernel$SUFF2		\
+	--define=_topdir\ $RPMTMP			\
+	--define=_tmppath\ $RPMTMP			\
+	$SPEC >> $LOG 2>&1
+
+#mv $RPMTMP/RPMS/$CPU/$NAME$SUFF2-$VERSION-$RELEASE.$CPU.rpm k.rpm
+
